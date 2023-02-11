@@ -326,7 +326,7 @@ class OFDM_channel(nn.Module):
 
         x = torch.resolve_conj(x)
         x = torch.view_as_real(x)
-        x = x.view(128, 1, 6, 80, 2)
+        # x = x.view(128, 1, 6, 80, 2)
         # Reshape:
         x = x.view(N, self.opt.P, self.opt.S * (self.opt.M + self.opt.K), 2)
         pilot = self.pilot_cp.repeat(N, 1, 1, 1, 1).view(N, self.opt.P, self.opt.N_pilot * (self.opt.M + self.opt.K), 2)

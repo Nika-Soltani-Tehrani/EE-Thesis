@@ -69,13 +69,13 @@ for epoch in range(cfg.epoch_count, cfg.n_epochs + cfg.n_epochs_decay + 1):    #
         epoch_iter += 1
 
         if cfg.dataset_mode in ['CIFAR10', 'CIFAR100']:
-            input = data[0]
+            input_bit_stream = data[0]
         elif cfg.dataset_mode == 'CelebA':
-            input = data['data']
+            input_bit_stream = data['data']
         elif cfg.dataset_mode == 'OpenImage':
-            input = data['data']
+            input_bit_stream = data['data']
 
-        model.set_input(input)         # unpack data from dataset and apply preprocessing
+        model.set_input(input_bit_stream)         # unpack data from dataset and apply preprocessing
         model.optimize_parameters()   # calculate loss functions, get gradients, update network weights
 
         if total_iters % cfg.print_freq == 0:    # print training losses and save logging information to the disk

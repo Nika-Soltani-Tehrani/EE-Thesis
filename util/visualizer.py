@@ -1,16 +1,17 @@
 import os
 import time
 
-class Visualizer():
-    """This class includes several functions that can display/save images and print/save logging information.
 
-    It uses a Python library 'visdom' for display, and a Python library 'dominate' (wrapped in 'HTML') for creating HTML files with images.
+class Visualizer:
+    """This class includes several functions that can display/save images and print/save logging information.
+    It uses a Python library 'visdom' for display, and a Python library 'dominate' (wrapped in 'HTML') for creating
+    HTML files with images.
     """
 
     def __init__(self, opt):
         self.opt = opt  # cache the option
         self.name = opt.name
-        
+
         if not os.path.isdir(os.path.join(opt.checkpoints_dir, opt.name)):
             os.makedirs(os.path.join(opt.checkpoints_dir, opt.name))
         # create a logging file to store training losses
@@ -18,7 +19,6 @@ class Visualizer():
         with open(self.log_name, "w") as log_file:
             now = time.strftime("%c")
             log_file.write('================ Training Loss (%s) ================\n' % now)
-
 
     # losses: same format as |losses| of plot_current_losses
     def print_current_losses(self, epoch, iters, losses, t_comp, t_data):

@@ -1,13 +1,7 @@
-import numpy as np
 import torch
-import os
-from torch.autograd import Variable
-from util.image_pool import ImagePool
 from .base_model import BaseModel
 from . import networks
 from . import channel
-import scipy.io as sio
-import random
 
 
 class JSCCOFDMModel(BaseModel):
@@ -109,7 +103,7 @@ class JSCCOFDMModel(BaseModel):
                                       init_gain=0.02,
                                       gpu_ids=self.gpu_ids)
 
-        # if self.isTrain and self.is_GAN:  # define a discriminator;
+        # if self.isTrain and self.is_GAN: define a discriminator;
         if self.opt.gan_mode != 'none':
             self.netD = (
                 networks.define_D(opt.output_nc,
