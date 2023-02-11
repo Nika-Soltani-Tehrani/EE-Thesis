@@ -1,8 +1,10 @@
+# Copyright (C) 2017 NVIDIA Corporation. All rights reserved.
+# Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
 import os
 import torch
+import sys
 from . import networks
 from collections import OrderedDict
-
 
 class BaseModel(torch.nn.Module):
     def name(self):
@@ -15,18 +17,18 @@ class BaseModel(torch.nn.Module):
         Parameters:
             opt (Option class)-- stores all the experiment flags; needs to be a subclass of BaseOptions
 
-        When creating your custom class, you need to implement your own initialization. In this function, you should 
-        first call <BaseModel.__init__(self, opt)> Then, you need to define four lists: -- self.loss_names (str 
-        list):          specify the training losses that you want to plot and save. -- self.model_names (str list):   
-              define networks used in our training. -- self.visual_names (str list):        specify the images that 
-              you want to display and save. -- self.optimizers (optimizer list):    define and initialize optimizers. 
-              You can define one optimizer for each network. If two networks are updated at the same time, 
-              you can use itertools.chain to group them. See cycle_gan_model.py for an example."""
+        When creating your custom class, you need to implement your own initialization.
+        In this function, you should first call <BaseModel.__init__(self, opt)>
+        Then, you need to define four lists:
+            -- self.loss_names (str list):          specify the training losses that you want to plot and save.
+            -- self.model_names (str list):         define networks used in our training.
+            -- self.visual_names (str list):        specify the images that you want to display and save.
+            -- self.optimizers (optimizer list):    define and initialize optimizers. You can define one optimizer for each network. If two networks are updated at the same time, you can use itertools.chain to group them. See cycle_gan_model.py for an example.
+        """
         self.opt = opt
         self.gpu_ids = opt.gpu_ids 
         self.isTrain = opt.isTrain
-        # get device name: CPU or GPU
-        self.device = torch.device('cuda:{}'.format(self.gpu_ids[0])) if self.gpu_ids else torch.device('cpu')
+        self.device = torch.device('cuda:{}'.format(self.gpu_ids[0])) if self.gpu_ids else torch.device('cpu')  # get device name: CPU or GPU
         self.save_dir = os.path.join(opt.checkpoints_dir, opt.name)  # save all the checkpoints to save_dir
         self.loss_names = []
         self.model_names = []
@@ -35,7 +37,7 @@ class BaseModel(torch.nn.Module):
         self.image_paths = []
         self.metric = 0  # used for learning rate policy 'plateau'
 
-    def set_input(self, input_bit_stream):
+    def set_input(self, input):
         pass
 
     def forward(self):
@@ -57,9 +59,7 @@ class BaseModel(torch.nn.Module):
         pass
 
     def get_current_visuals(self):
-        """
-        Return visualization images. train.py will display these images with visdom, and save the images to an HTML
-        """
+        """Return visualization images. train.py will display these images with visdom, and save the images to a HTML"""
         visual_ret = OrderedDict()
         for name in self.visual_names:
             if isinstance(name, str):
@@ -67,14 +67,11 @@ class BaseModel(torch.nn.Module):
         return visual_ret
 
     def get_current_losses(self):
-        """
-        Return training losses / errors. train.py will print out these errors on console, and save them to a file
-        """
+        """Return traning losses / errors. train.py will print out these errors on console, and save them to a file"""
         errors_ret = OrderedDict()
         for name in self.loss_names:
             if isinstance(name, str):
-                # float(...) works for both scalar tensor and float number
-                errors_ret[name] = float(getattr(self, 'loss_' + name)) 
+                errors_ret[name] = float(getattr(self, 'loss_' + name))  # float(...) works for both scalar tensor and float number
         return errors_ret
 
     def setup(self, opt):
@@ -184,9 +181,8 @@ class BaseModel(torch.nn.Module):
                 print('[Network %s] Total number of parameters : %.6f M' % (name, num_params / 1e6))
         print('-----------------------------------------------')
 
-    @staticmethod
-    def set_requires_grad(nets, requires_grad=False):
-        """Set requires_grad=False for all the networks to avoid unnecessary computations
+    def set_requires_grad(self, nets, requires_grad=False):
+        """Set requies_grad=Fasle for all the networks to avoid unnecessary computations
         Parameters:
             nets (network list)   -- a list of networks
             requires_grad (bool)  -- whether the networks require gradients or not

@@ -1,7 +1,7 @@
 """This module implements an abstract base class (ABC) 'BaseDataset' for datasets.
 
-It also includes common transformation functions (e.g., get_transform, __scale_width), which can be later used in
-subclasses."""
+It also includes common transformation functions (e.g., get_transform, __scale_width), which can be later used in subclasses.
+"""
 import random
 import numpy as np
 import torch.utils.data as data
@@ -33,8 +33,9 @@ class BaseDataset(data.Dataset, ABC):
     def modify_commandline_options(parser, is_train):
         """Add new dataset-specific options, and rewrite default values for existing options.
 
-        Parameters: parser          -- original option parser is_train (bool) -- whether training phase or test
-        phase. You can use this flag to add training-specific or test-specific options.
+        Parameters:
+            parser          -- original option parser
+            is_train (bool) -- whether training phase or test phase. You can use this flag to add training-specific or test-specific options.
 
         Returns:
             the modified parser.
@@ -54,7 +55,7 @@ class BaseDataset(data.Dataset, ABC):
             index - - a random integer for data indexing
 
         Returns:
-            a dictionary of data with their names. It usually contains the data itself and its metadata information.
+            a dictionary of data with their names. It ususally contains the data itself and its metadata information.
         """
         pass
 
@@ -135,7 +136,7 @@ def __crop(img, pos, size):
     ow, oh = img.size
     x1, y1 = pos
     tw = th = size
-    if ow > tw or oh > th:
+    if (ow > tw or oh > th):
         return img.crop((x1, y1, x1 + tw, y1 + th))
     return img
 

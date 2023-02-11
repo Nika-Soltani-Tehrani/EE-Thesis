@@ -1,19 +1,19 @@
+# Copyright (C) 2017 NVIDIA Corporation. All rights reserved.
+# Licensed under the CC BY-NC-SA 4.0 license (https://creativecommons.org/licenses/by-nc-sa/4.0/legalcode).
 import torch
 import torch.nn as nn
 from torch.nn import init
 import functools
 from torch.optim import lr_scheduler
 import numpy as np
-
+from torch.nn import functional as F
 
 ###############################################################################
 # Functions
 ###############################################################################
 
-
 class Identity(nn.Module):
-    @staticmethod
-    def forward(x):
+    def forward(self, x):
         return x
 
 
@@ -31,8 +31,7 @@ def get_norm_layer(norm_type='instance'):
     elif norm_type == 'instance':
         norm_layer = functools.partial(nn.InstanceNorm2d, affine=False, track_running_stats=False)
     elif norm_type == 'none':
-        def norm_layer():
-            return Identity()
+        def norm_layer(x): return Identity()
     else:
         raise NotImplementedError('normalization layer [%s] is not found' % norm_type)
     return norm_layer
@@ -49,7 +48,6 @@ def init_weights(net, init_type='normal', init_gain=0.02):
     We use 'normal' in the original pix2pix and CycleGAN paper. But xavier and kaiming might
     work better for some applications. Feel free to try yourself.
     """
-
     def init_func(m):  # define the initialization function
         classname = m.__class__.__name__
         if hasattr(m, 'weight') and (classname.find('Conv') != -1 or classname.find('Linear') != -1):
@@ -65,30 +63,25 @@ def init_weights(net, init_type='normal', init_gain=0.02):
                 raise NotImplementedError('initialization method [%s] is not implemented' % init_type)
             if hasattr(m, 'bias') and m.bias is not None:
                 init.constant_(m.bias.data, 0.0)
-
-        # BatchNorm Layer's weight is not a matrix; only normal distribution applies.
-        elif classname.find('BatchNorm2d') != -1:
+        elif classname.find('BatchNorm2d') != -1:  # BatchNorm Layer's weight is not a matrix; only normal distribution applies.
             init.normal_(m.weight.data, 1.0, init_gain)
             init.constant_(m.bias.data, 0.0)
 
     print('initialize network with %s' % init_type)
     net.apply(init_func)  # apply the initialization function <init_func>
 
-
 def init_net(net, init_type='normal', init_gain=0.02, gpu_ids=[]):
     """Initialize a network: 1. register CPU/GPU device (with multi-GPU support); 2. initialize the network weights
     Parameters:
         net (network)      -- the network to be initialized
         init_type (str)    -- the name of an initialization method: normal | xavier | kaiming | orthogonal
-        init_gain (float)       -- scaling factor for normal, xavier and orthogonal.
+        gain (float)       -- scaling factor for normal, xavier and orthogonal.
         gpu_ids (int list) -- which GPUs the network runs on: e.g., 0,1,2
 
     Return an initialized network.
     """
-    if gpu_ids is None:
-        gpu_ids = []
     if len(gpu_ids) > 0:
-        assert (torch.cuda.is_available())
+        assert(torch.cuda.is_available())
         net.to(gpu_ids[0])
         net = torch.nn.DataParallel(net, gpu_ids)  # multi-GPUs
     init_weights(net, init_type, init_gain=init_gain)
@@ -112,7 +105,6 @@ def get_scheduler(optimizer, opt):
         def lambda_rule(epoch):
             lr_l = 1.0 - max(0, epoch + opt.epoch_count - opt.n_epochs) / float(opt.n_epochs_decay + 1)
             return lr_l
-
         scheduler = lr_scheduler.LambdaLR(optimizer, lr_lambda=lambda_rule)
     elif opt.lr_policy == 'step':
         scheduler = lr_scheduler.StepLR(optimizer, step_size=opt.lr_decay_iters, gamma=0.1)
@@ -135,63 +127,27 @@ def print_network(net):
     print('Total number of parameters: %d' % num_params)
 
 
-class Normalize(nn.Module):
-    @staticmethod
-    def forward(x, power):
-        pwr = torch.mean(x ** 2, (1, 2, 3), True)
 
-        return np.sqrt(power) * x / torch.sqrt(pwr)
+class Normalize(nn.Module):
+  def forward(self, x, power):
+    N = x.shape[0]
+    pwr = torch.mean(x**2, (1,2,3), True)
+
+    return np.sqrt(power)*x/torch.sqrt(pwr)
 
 
 # Initialization of encoder, generator and discriminator (optional)
-def define_E(input_nc,
-             ngf,
-             max_ngf,
-             n_down_sample,
-             c_channel,
-             n_blocks,
-             norm='instance',
-             init_type='kaiming',
-             init_gain=0.02,
-             gpu_ids=[]):
-    norm_layer = get_norm_layer(norm_type=norm)
-    net = (
-        Encoder(input_nc=input_nc,
-                ngf=ngf,
-                max_ngf=max_ngf,
-                c_channel=c_channel,
-                n_blocks=n_blocks,
-                n_down_sampling=n_down_sample,
-                norm_layer=norm_layer,
-                padding_type="reflect")
-    )
-    return init_net(net, init_type, init_gain, gpu_ids)
-
-
-def define_G(output_nc,
-             ngf,
-             max_ngf,
-             n_down_sample,
-             c_channel,
-             n_blocks,
-             norm="instance",
-             init_type='kaiming',
-             init_gain=0.02,
-             gpu_ids=[]):
+def define_E(input_nc, ngf, max_ngf, n_downsample, C_channel, n_blocks, norm='instance', init_type='kaiming', init_gain=0.02, gpu_ids=[]):
     net = None
     norm_layer = get_norm_layer(norm_type=norm)
-    net = (
-        Generator(output_nc=output_nc,
-                  ngf=ngf,
-                  max_ngf=max_ngf,
-                  c_channel=c_channel,
-                  n_blocks=n_blocks,
-                  n_down_sampling=n_down_sample,
-                  norm_layer=norm_layer,
-                  padding_type="reflect")
-    )
+    net = Encoder(input_nc=input_nc, ngf=ngf, max_ngf=max_ngf, C_channel=C_channel, n_blocks=n_blocks, n_downsampling=n_downsample, norm_layer=norm_layer, padding_type="reflect")
     return init_net(net, init_type, init_gain, gpu_ids)
 
+def define_G(output_nc, ngf, max_ngf, n_downsample, C_channel, n_blocks, norm="instance", init_type='kaiming', init_gain=0.02, gpu_ids=[]):
+    net = None
+    norm_layer = get_norm_layer(norm_type=norm)
+    net = Generator(output_nc=output_nc, ngf=ngf, max_ngf=max_ngf, C_channel=C_channel, n_blocks=n_blocks, n_downsampling=n_downsample, norm_layer=norm_layer, padding_type="reflect")
+    return init_net(net, init_type, init_gain, gpu_ids)
 
 def define_D(input_nc, ndf, n_layers_D=3, norm='batch', init_type='normal', init_gain=0.02, gpu_ids=[]):
     net = None
@@ -199,40 +155,30 @@ def define_D(input_nc, ndf, n_layers_D=3, norm='batch', init_type='normal', init
     net = NLayerDiscriminator(input_nc, ndf, n_layers=n_layers_D, norm_layer=norm_layer)
     return init_net(net, init_type, init_gain, gpu_ids)
 
-
 def define_S(dim, dim_out, dim_in=64, norm='instance', init_type='kaiming', init_gain=0.02, gpu_ids=[]):
     net = None
     norm_layer = get_norm_layer(norm_type=norm)
-    net = Subnet(dim=dim, dim_out=dim_out, dim_in=dim_in, padding_type='zero', norm_layer=norm_layer, use_dropout=False)
+    net = Subnet(dim=dim, dim_out=dim_out, dim_in = dim_in, padding_type='zero', norm_layer=norm_layer, use_dropout=False)
     return init_net(net, init_type, init_gain, gpu_ids)
-
 
 # Encoder network
 class Encoder(nn.Module):
 
-    def __init__(self,
-                 input_nc,
-                 ngf=64,
-                 max_ngf=512,
-                 c_channel=16,
-                 n_blocks=2,
-                 n_down_sampling=2,
-                 norm_layer=nn.BatchNorm2d,
-                 padding_type="reflect"):
+    def __init__(self, input_nc, ngf=64, max_ngf=512, C_channel=16, n_blocks=2, n_downsampling=2, norm_layer=nn.BatchNorm2d, padding_type="reflect"):
         """Construct a Resnet-based encoder
 
         Parameters:
             input_nc (int)      -- the number of channels in input images
             ngf (int)           -- the number of filters in the first conv layer
             max_ngf (int)       -- the maximum number of filters
-            c_channel (int)     -- the number of channels of the output
+            C_channel (int)     -- the number of channels of the output
             n_blocks (int)      -- the number of ResNet blocks
-            n_down sampling      -- number of down sampling layers
+            n_downsampling      -- number of downsampling layers
             norm_layer          -- normalization layer
             padding_type (str)  -- the name of padding layer in conv layers: reflect | replicate | zero
         """
-        assert (n_down_sampling >= 0)
-        assert (n_blocks >= 0)
+        assert(n_downsampling>=0)
+        assert(n_blocks>=0)
         super(Encoder, self).__init__()
 
         if type(norm_layer) == functools.partial:
@@ -242,80 +188,52 @@ class Encoder(nn.Module):
 
         activation = nn.ReLU(True)
 
-        model = [nn.ReflectionPad2d((5 - 1) // 2),
+        model = [nn.ReflectionPad2d((5-1)//2),
                  nn.Conv2d(input_nc, ngf, kernel_size=5, padding=0, bias=use_bias),
                  norm_layer(ngf),
                  activation]
 
-        # add down sampling layers
-        for i in range(n_down_sampling):
-            mult = 2 ** i
-            model += (
-                nn.Conv2d(
-                    min(ngf * mult, max_ngf), min(ngf * mult * 2, max_ngf),
-                    kernel_size=3,
-                    stride=2,
-                    padding=1,
-                    bias=use_bias),
-                norm_layer(min(ngf * mult * 2, max_ngf)), activation
-            )
+        # add downsampling layers
+        for i in range(n_downsampling):
+            mult = 2**i
+            model += [nn.Conv2d(min(ngf * mult,max_ngf), min(ngf * mult * 2,max_ngf), kernel_size=3, stride=2, padding=1, bias=use_bias),
+                      norm_layer(min(ngf * mult * 2, max_ngf)), activation]
 
         self.model_down = nn.Sequential(*model)
-        model = []
+        model= []
         # add ResNet blocks
-        mult = 2 ** n_down_sampling
+        mult = 2 ** n_downsampling
         for i in range(n_blocks):
-            model += (
-                ResnetBlock(min(ngf * mult, max_ngf),
-                            padding_type=padding_type,
-                            norm_layer=norm_layer,
-                            use_dropout=False,
-                            use_bias=use_bias)
-            )
+            model += [ResnetBlock(min(ngf * mult,max_ngf), padding_type=padding_type, norm_layer=norm_layer, use_dropout=False, use_bias=use_bias)]
 
         self.model_res = nn.Sequential(*model)
 
-        self.projection = (
-            nn.Conv2d(min(ngf * mult, max_ngf),
-                      c_channel,
-                      kernel_size=3,
-                      padding=1,
-                      stride=1,
-                      bias=use_bias)
-        )
+        self.projection = nn.Conv2d(min(ngf * mult,max_ngf), C_channel, kernel_size=3, padding=1, stride=1, bias=use_bias)
 
-    def forward(self, input_bit_stream, H=None):
+    def forward(self, input, H=None):
 
-        z = self.model_down(input_bit_stream)
+        z = self.model_down(input)
         z = self.model_res(z)
-        return self.projection(z)
+        return  self.projection(z)
 
 
 # Generator network
 class Generator(nn.Module):
-    def __init__(self,
-                 output_nc,
-                 ngf=64,
-                 max_ngf=512,
-                 c_channel=16,
-                 n_blocks=2,
-                 n_down_sampling=2,
-                 norm_layer=nn.BatchNorm2d,
-                 padding_type="reflect"):
+    def __init__(self, output_nc, ngf=64, max_ngf=512, C_channel=16, n_blocks=2, n_downsampling=2, norm_layer=nn.BatchNorm2d, padding_type="reflect"):
         """Construct a Resnet-based generator
 
         Parameters:
             output_nc (int)     -- the number of channels for the output image
             ngf (int)           -- the number of filters in the first conv layer
             max_ngf (int)       -- the maximum number of filters
-            c_channel (int)     -- the number of channels of the input
+            C_channel (int)     -- the number of channels of the input
             n_blocks (int)      -- the number of ResNet blocks
-            n_down sampling      -- number of down sampling layers
+            n_downsampling      -- number of downsampling layers
             norm_layer          -- normalization layer
             padding_type (str)  -- the name of padding layer in conv layers: reflect | replicate | zero
         """
-        assert (n_blocks >= 0)
-        assert (n_down_sampling >= 0)
+        assert (n_blocks>=0)
+        assert(n_downsampling>=0)
 
         super(Generator, self).__init__()
 
@@ -326,38 +244,31 @@ class Generator(nn.Module):
 
         activation = nn.ReLU(True)
 
-        mult = 2 ** n_down_sampling
+        mult = 2 ** n_downsampling
         ngf_dim = min(ngf * mult, max_ngf)
-        model = [nn.Conv2d(c_channel, ngf_dim, kernel_size=3, padding=1, stride=1, bias=use_bias)]
+        model = [nn.Conv2d(C_channel,ngf_dim,kernel_size=3, padding=1 ,stride=1, bias=use_bias)]
 
         for i in range(n_blocks):
-            model += (
-                ResnetBlock(ngf_dim,
-                            padding_type=padding_type,
-                            norm_layer=norm_layer,
-                            use_dropout=False,
-                            use_bias=use_bias)
-            )
+            model += [ResnetBlock(ngf_dim, padding_type=padding_type, norm_layer=norm_layer, use_dropout=False, use_bias=use_bias)]
 
-        for i in range(n_down_sampling):
-            mult = 2 ** (n_down_sampling - i)
-            model += (
-                nn.ConvTranspose2d(min(ngf * mult, max_ngf),
-                                   min(ngf * mult // 2, max_ngf),
-                                   kernel_size=3,
-                                   stride=2,
-                                   padding=1,
-                                   output_padding=1,
-                                   bias=use_bias),
-                norm_layer(min(ngf * mult // 2, max_ngf)),
-                activation
-            )
-        model += [nn.ReflectionPad2d((5 - 1) // 2), nn.Conv2d(ngf, output_nc, kernel_size=5, padding=0)]
-        model += [nn.Sigmoid()]
+        for i in range(n_downsampling):
+            mult = 2 ** (n_downsampling - i)
+            model += [nn.ConvTranspose2d(min(ngf * mult,max_ngf), min(ngf * mult //2, max_ngf),
+                                         kernel_size=3, stride=2,
+                                         padding=1, output_padding=1,
+                                         bias=use_bias),
+                      norm_layer(min(ngf * mult //2, max_ngf)),
+                      activation]
+
+        model += [nn.ReflectionPad2d((5-1)//2), nn.Conv2d(ngf, output_nc, kernel_size=5, padding=0)]
+
+        model +=[nn.Sigmoid()]
+
         self.model = nn.Sequential(*model)
 
-    def forward(self, input_bit_stream):
-        return 2 * self.model(input_bit_stream) - 1
+    def forward(self, input):
+
+        return 2*self.model(input)-1
 
 
 # Defines the resnet block
@@ -451,48 +362,35 @@ class NLayerDiscriminator(nn.Module):
         for n in range(1, n_layers):  # gradually increase the number of filters
             nf_mult_prev = nf_mult
             nf_mult = min(2 ** n, 8)
-            sequence += (
-                [[
-                    nn.Conv2d(ndf * nf_mult_prev,
-                              ndf * nf_mult,
-                              kernel_size=kw,
-                              stride=2,
-                              padding=padw,
-                              bias=use_bias),
-                    norm_layer(ndf * nf_mult),
-                    nn.LeakyReLU(0.2, True)
-                ]]
-            )
-
-        nf_mult_prev = nf_mult
-        nf_mult = min(2 ** n_layers, 8)
-        sequence += (
-            [[
-                nn.Conv2d(ndf * nf_mult_prev,
-                          ndf * nf_mult,
-                          kernel_size=kw,
-                          stride=1,
-                          padding=padw,
-                          bias=use_bias),
+            sequence += [[
+                nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=2, padding=padw, bias=use_bias),
                 norm_layer(ndf * nf_mult),
                 nn.LeakyReLU(0.2, True)
             ]]
-        )
 
-        sequence += [
-            [nn.Conv2d(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw)]]  # output 1 channel prediction map
+        nf_mult_prev = nf_mult
+        nf_mult = min(2 ** n_layers, 8)
+        sequence += [[
+            nn.Conv2d(ndf * nf_mult_prev, ndf * nf_mult, kernel_size=kw, stride=1, padding=padw, bias=use_bias),
+            norm_layer(ndf * nf_mult),
+            nn.LeakyReLU(0.2, True)
+        ]]
+
+        sequence += [[nn.Conv2d(ndf * nf_mult, 1, kernel_size=kw, stride=1, padding=padw)]]  # output 1 channel prediction map
+
 
         for n in range(len(sequence)):
-            setattr(self, 'model' + str(n), nn.Sequential(*sequence[n]))
+            setattr(self, 'model'+str(n), nn.Sequential(*sequence[n]))
 
-    def forward(self, input_bit_stream):
+
+    def forward(self, input):
         """Standard forward."""
-        res = [input_bit_stream]
-        for n in range(self.n_layers + 1):
-            model = getattr(self, 'model' + str(n))
+        res = [input]
+        for n in range(self.n_layers+1):
+            model = getattr(self, 'model'+str(n))
             res.append(model(res[-1]))
 
-        model = getattr(self, 'model' + str(self.n_layers + 1))
+        model = getattr(self, 'model'+str(self.n_layers+1))
         out = model(res[-1])
 
         return res[1:], out
@@ -534,7 +432,7 @@ class GANLoss(nn.Module):
         """Create label tensors with the same size as the input.
 
         Parameters:
-            prediction (tensor) - - typically the prediction from a discriminator
+            prediction (tensor) - - tpyically the prediction from a discriminator
             target_is_real (bool) - - if the ground truth label is for real images or fake images
 
         Returns:
@@ -551,7 +449,7 @@ class GANLoss(nn.Module):
         """Calculate loss given Discriminator's output and grount truth labels.
 
         Parameters:
-            prediction (tensor) - - typically the prediction output from a discriminator
+            prediction (tensor) - - tpyically the prediction output from a discriminator
             target_is_real (bool) - - if the ground truth label is for real images or fake images
 
         Returns:
@@ -571,38 +469,35 @@ class GANLoss(nn.Module):
 def cal_gradient_penalty(netD, real_data, fake_data, device, type='mixed', constant=1.0, lambda_gp=10.0):
     """Calculate the gradient penalty loss, used in WGAN-GP paper https://arxiv.org/abs/1704.00028
 
-    Arguments: netD (network)              -- discriminator network real_data (tensor array)    -- real images
-    fake_data (tensor array)    -- generated images from the generator device (str)                -- GPU / CPU: from
-    torch.device('cuda:{}'.format(self.gpu_ids[0])) if self.gpu_ids else torch.device('cpu') type (str)
-       -- if we mix real and fake data or not [real | fake | mixed]. constant (float)            -- the constant used
-       in formula ( | |gradient||_2 - constant)^2 lambda_gp (float)           -- weight for this loss
+    Arguments:
+        netD (network)              -- discriminator network
+        real_data (tensor array)    -- real images
+        fake_data (tensor array)    -- generated images from the generator
+        device (str)                -- GPU / CPU: from torch.device('cuda:{}'.format(self.gpu_ids[0])) if self.gpu_ids else torch.device('cpu')
+        type (str)                  -- if we mix real and fake data or not [real | fake | mixed].
+        constant (float)            -- the constant used in formula ( | |gradient||_2 - constant)^2
+        lambda_gp (float)           -- weight for this loss
 
     Returns the gradient penalty loss
     """
     if lambda_gp > 0.0:
-        if type == 'real':  # either use real images, fake images, or a linear interpolation of two.
-            interpolate = real_data
+        if type == 'real':   # either use real images, fake images, or a linear interpolation of two.
+            interpolatesv = real_data
         elif type == 'fake':
-            interpolate = fake_data
+            interpolatesv = fake_data
         elif type == 'mixed':
             alpha = torch.rand(real_data.shape[0], 1, device=device)
-            alpha = alpha.expand(real_data.shape[0], real_data.nelement() // real_data.shape[0]).contiguous().view(
-                *real_data.shape)
-            interpolate = alpha * real_data + ((1 - alpha) * fake_data)
+            alpha = alpha.expand(real_data.shape[0], real_data.nelement() // real_data.shape[0]).contiguous().view(*real_data.shape)
+            interpolatesv = alpha * real_data + ((1 - alpha) * fake_data)
         else:
             raise NotImplementedError('{} not implemented'.format(type))
-        interpolate.requires_grad_(True)
-        disc_interpolates = netD(interpolate)
-        gradients = (
-            torch.autograd.grad(outputs=disc_interpolates,
-                                inputs=interpolate,
-                                grad_outputs=torch.ones(disc_interpolates.size()).to(device),
-                                create_graph=True,
-                                retain_graph=True,
-                                only_inputs=True)
-        )
+        interpolatesv.requires_grad_(True)
+        disc_interpolates = netD(interpolatesv)
+        gradients = torch.autograd.grad(outputs=disc_interpolates, inputs=interpolatesv,
+                                        grad_outputs=torch.ones(disc_interpolates.size()).to(device),
+                                        create_graph=True, retain_graph=True, only_inputs=True)
         gradients = gradients[0].view(real_data.size(0), -1)  # flat the data
-        gradient_penalty = (((gradients + 1e-16).norm(2, dim=1) - constant) ** 2).mean() * lambda_gp  # added eps
+        gradient_penalty = (((gradients + 1e-16).norm(2, dim=1) - constant) ** 2).mean() * lambda_gp        # added eps
         return gradient_penalty, gradients
     else:
         return 0.0, None
@@ -623,33 +518,14 @@ class Subnet(nn.Module):
 
         self.conv_block = self.build_conv_block(dim, dim_out, dim_in, padding_type, norm_layer, use_dropout, use_bias)
 
-    @staticmethod
-    def build_conv_block(dim, dim_out, dim_in, padding_type, norm_layer, use_dropout, use_bias):
+    def build_conv_block(self, dim, dim_out, dim_in, padding_type, norm_layer, use_dropout, use_bias):
         conv_block = []
-        conv_block += (
-            nn.Conv2d(
-                dim,
-                dim_in,
-                kernel_size=5,
-                padding=2,
-                bias=use_bias
-            ),
-            norm_layer(dim_in),
-            nn.ReLU(True)
-        )
-        conv_block += (
-            nn.Conv2d(
-                dim_in,
-                dim_in,
-                kernel_size=5,
-                padding=2,
-                bias=use_bias
-            ),
-            norm_layer(dim_in),
-            nn.ReLU(True)
-        )
+        conv_block += [nn.Conv2d(dim, dim_in, kernel_size=5, padding=2, bias=use_bias), norm_layer(dim_in), nn.ReLU(True)]
+        conv_block += [nn.Conv2d(dim_in, dim_in, kernel_size=5, padding=2, bias=use_bias), norm_layer(dim_in), nn.ReLU(True)]
         conv_block += [nn.Conv2d(dim_in, dim_out, kernel_size=5, padding=2, bias=use_bias)]
         return nn.Sequential(*conv_block)
 
-    def forward(self, x):
-        return self.conv_block(x)
+    def forward(self, x): 
+        return self.conv_block(x) 
+
+
