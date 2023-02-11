@@ -20,7 +20,7 @@ if cfg.dataset_mode == 'CIFAR10':
 
     testset = torchvision.datasets.CIFAR10(root='./data', train=False,
                                            download=True, transform=transform)
-    dataset = torch.utils.data.DataLoader(testset, batch_size=cfg.batch_Size,
+    dataset = torch.utils.data.DataLoader(testset, batch_size=cfg.batch_size,
                                           shuffle=False, num_workers=2)
     dataset_size = len(dataset)
     print('#training images = %d' % dataset_size)
@@ -32,7 +32,7 @@ elif cfg.dataset_mode == 'CIFAR100':
 
     testset = torchvision.datasets.CIFAR100(root='./data', train=False,
                                             download=True, transform=transform)
-    dataset = torch.utils.data.DataLoader(testset, batch_size=cfg.batch_Size,
+    dataset = torch.utils.data.DataLoader(testset, batch_size=cfg.batch_size,
                                           shuffle=False, num_workers=2)
     dataset_size = len(dataset)
     print('#training images = %d' % dataset_size)
