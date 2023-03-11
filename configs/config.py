@@ -24,6 +24,8 @@ __C.is_clip = False  # Whether to apply signal clipping or not
 __C.CR = 1.2  # Clipping ratio if clipping is applied
 __C.lam_h = 50  # Weight for the channel reconstruction loss
 __C.gan_mode = 'none'  # ['wgangp', 'lsgan', 'vanilla', 'none']
+__C.output_nc = 3
+__C.ndf = 64
 __C.lam_G = 0.02  # Weight for the adversarial loss
 __C.lam_L2 = 100  # Weight for image reconstruction loss
 
@@ -54,3 +56,4 @@ __C.norm_EG = 'batch'  # Type of normalization in Encoder and Generator
 __C.name = f'C{__C.C_channel}_{__C.feedforward}_SNR_{__C.SNR}_{__C.SNR_cal}_pilot_{__C.N_pilot}_hloss_{__C.lam_h}'
 __C.name += f'_clip_{__C.CR}' if __C.is_clip else ''
 __C.name += f'_{__C.gan_mode}_{__C.lam_G}' if __C.gan_mode != 'none' else ''
+__C.name += f'_{__C.model}'

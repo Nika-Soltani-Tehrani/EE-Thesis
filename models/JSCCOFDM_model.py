@@ -142,7 +142,9 @@ class JSCCOFDMModel(BaseModel):
                 self.optimizers.append(self.optimizer_D)
 
         self.opt = opt
-        self.channel = channel.OFDM_channel(opt, self.device, pwr=1)
+        self.channel = channel.WOOFDMChannel(opt, self.device, pwr=1)
+        # self.channel = channel.OFDM_channel(opt, self.device, pwr=1)
+        print(self.channel)
 
     def name(self):
         return 'JSCCOFDM_Model'
