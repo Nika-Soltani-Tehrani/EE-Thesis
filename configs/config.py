@@ -10,11 +10,16 @@ __C.gpu_ids = []  # GPUs to use
 __C.dataset_mode = 'CIFAR10'  # ['CIFAR10', 'CIFAR100', 'CelebA', 'OpenImage']
 __C.checkpoints_dir = './Checkpoints/' + __C.dataset_mode  # Path to store the model
 __C.model = 'JSCCOFDM'
+__C.channel_type = 'WOOFDMChannel'
+# Different schemes:
+# WOOFDMChannel: Channel without having OFDM module
+# OFDMChannel: End-to-end channel with OFDM module
 __C.C_channel = 12  # Number of channels for output latents (controls the communication rate)
 # Calculation of the rate (channel usage per pixel): C_channel / (3 x 2^(2 x n_down_sample + 1))
 __C.SNR = 5  # Signal-to-noise ratio
 __C.SNR_cal = 'ins'  # ['ins', 'avg']. 'ins' is for instantaneous SNR, 'avg' is for average SNR
-__C.feedforward = 'OFDM-CE-sub-EQ-sub'  # Different schemes:
+__C.feedforward = 'OFDM-CE-EQ'  # Different schemes:
+# Auto-Encoder: auto-encoder without OFDM and CE EQ modules (base model)
 # OFDM-CE-EQ: MMSE channel estimation and equalization without any subnets
 # OFDM-CE-sub-EQ: MMSE channel estimation and equalization with CE subnet
 # OFDM-CE-sub-EQ-sub: MMSE channel estimation and equalization with CE & EQ subnet

@@ -269,13 +269,13 @@ def LMMSE_channel_est(pilot_tx, pilot_rx, noise_pwr):
     return no / de
 
 
-class OFDM_channel(nn.Module):
+class OFDMChannel(nn.Module):
     """
     Simulating the end-to-end OFDM system with non-linearity
     """
 
     def __init__(self, opt, device, pwr=1):
-        super(OFDM_channel, self).__init__()
+        super(OFDMChannel, self).__init__()
         self.opt = opt
 
         # Set up the add & remove CP layers

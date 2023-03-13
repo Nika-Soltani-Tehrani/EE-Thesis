@@ -15,7 +15,7 @@ class JSCCOFDMModel(BaseModel):
         # specify the images you want to save/display. The training/test scripts will call
         # <BaseModel.get_current_visuals>
         self.visual_names = ['real_A', 'fake', 'real_B']
-
+        self.channel_type = self.opt.channel_type
         # specify the models you want to save to the disk. The training/test scripts will call
         # <BaseModel.save_networks> and <BaseModel.load_networks>
         if self.opt.gan_mode != 'none' and self.isTrain:
@@ -142,8 +142,11 @@ class JSCCOFDMModel(BaseModel):
                 self.optimizers.append(self.optimizer_D)
 
         self.opt = opt
-        self.channel = channel.WOOFDMChannel(opt, self.device, pwr=1)
-        # self.channel = channel.OFDM_channel(opt, self.device, pwr=1)
+        if self.channel_type == "OFDMChannel":
+            self.channel = channel.OFDMChannel(opt, self.device, pwr=1)
+        if self.channel_type == "WOOFDMChannel":
+            self.channel = channel.WOOFDMChannel(opt, self.device, pwr=1)
+
         print(self.channel)
 
     def name(self):
@@ -198,6 +201,10 @@ class JSCCOFDMModel(BaseModel):
         self.H_true = self.H_true.to(self.device).unsqueeze(2)
 
         N, C, H, W = latent.shape
+
+        # The model consists of simple auto-encoder which should be used with WOOFDMChannel
+        if self.opt.feedforward == 'Auto-Encoder':
+            self.fake = self.netG(out_sig.view(latent.shape))
 
         # The receiver contains CE and EQ modules but no additional subnets
         if self.opt.feedforward == 'OFDM-CE-EQ':
@@ -276,11 +283,14 @@ class JSCCOFDMModel(BaseModel):
                 .contiguous()
                 .view(-1, 6, 8, 8)
             )
-            sub2_output = self.netEQ(sub2_input).view(-1, 1, 1, 2, self.opt.M).permute(0, 1, 2, 4, 3).view(
-                self.rx.shape)
+            sub2_output = (
+                self.netEQ(sub2_input)
+                .view(-1, 1, 1, 2, self.opt.M)
+                .permute(0, 1, 2, 4, 3)
+                .view(self.rx.shape)
+            )
             dec_in = (self.rx + sub2_output).permute(0, 1, 2, 4, 3).contiguous().view(latent.shape)
             self.fake = self.netG(dec_in)
-            print(self.fake[0][0][0][0])
 
         # The case when channel feedback is available. CE module is not needed    
         elif self.opt.feedforward == 'OFDM-feedback':
