@@ -10,7 +10,7 @@ __C.gpu_ids = []  # GPUs to use
 __C.dataset_mode = 'CIFAR10'  # ['CIFAR10', 'CIFAR100', 'CelebA', 'OpenImage']
 __C.checkpoints_dir = './Checkpoints/' + __C.dataset_mode  # Path to store the model
 __C.model = 'JSCCOFDM'
-__C.channel_type = 'WOOFDMChannel'
+__C.channel_type = 'OFDMChannel'
 # Different schemes:
 # WOOFDMChannel: Channel without having OFDM module
 # OFDMChannel: End-to-end channel with OFDM module
