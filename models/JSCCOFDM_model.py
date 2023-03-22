@@ -71,7 +71,7 @@ class JSCCOFDMModel(BaseModel):
             )
             self.netP = (
                 networks
-                .define_S(dim=self.opt.C_channel + 2,
+                .define_S(dim=self.opt.C_channel + 1,
                           dim_out=self.opt.C_channel,
                           dim_in=64,
                           norm=opt.norm_EG,
@@ -79,6 +79,7 @@ class JSCCOFDMModel(BaseModel):
                           init_gain=0.02,
                           gpu_ids=self.gpu_ids)
             )
+            print(self.netP)
 
         # define networks (both generator and discriminator)
         self.netE = networks.define_E(input_nc=3,
@@ -190,7 +191,9 @@ class JSCCOFDMModel(BaseModel):
                 .view(N, -1, latent.shape[2], latent.shape[3])
                 .to(latent.device)
             )
-            weights = self.netP(torch.cat((H_true, latent), 1))
+            concatenated = torch.cat((H_true, latent), 1)
+            concatenated = torch.real(concatenated)
+            weights = self.netP(concatenated)
             latent = latent * weights
 
         # Reshape the latents to be transmitted
@@ -259,11 +262,7 @@ class JSCCOFDMModel(BaseModel):
                 .contiguous()
                 .view(N, -1, 8, 8)
             )
-            # print(sub1_input.shape) # [128, 6, 8, 8] , torch.complex64
-            # [128, 1, 1, 2, 64]
             sub1_output = self.netCE(sub1_input).view(N, self.opt.P, 1, 2, self.opt.M).permute(0, 1, 2, 4, 3)
-            # print(sub1_output.shape)
-            # n = sub1_output
 
             self.H_est = self.H_est_MMSE + sub1_output
             sub21 = self.H_est
@@ -297,6 +296,7 @@ class JSCCOFDMModel(BaseModel):
             self.H_est = self.H_true
             sub21 = self.H_est
             sub22 = out_sig
+            sub21 = torch.view_as_real(sub21).view(128, self.opt.P, 1, self.opt.M, 2)
             self.rx = self.equalization(sub21, sub22, noise_pwr)
             sub23 = self.rx
 
