@@ -1,7 +1,8 @@
 import torch
-from .base_model import BaseModel
-from . import networks
+
 from . import channel
+from . import networks
+from .base_model import BaseModel
 
 
 class JSCCOFDMModel(BaseModel):

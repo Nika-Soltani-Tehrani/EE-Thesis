@@ -1,11 +1,13 @@
 import time
-from models import create_model
-from data import create_dataset
-from util.visualizer import Visualizer
+
 import torch
 import torchvision
 import torchvision.transforms as transforms
+
 from configs.config_train import cfg
+from data import create_dataset
+from models import create_model
+from util.visualizer import Visualizer
 
 # Create dataloaders
 if cfg.dataset_mode == 'CIFAR10':

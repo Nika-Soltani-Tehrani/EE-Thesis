@@ -1,12 +1,10 @@
-from scipy.linalg import dft
-from scipy.linalg import toeplitz
+import math
 import os
+
+import numpy as np
 import torch
 import torch.nn as nn
-import numpy as np
-import scipy.io as sio
 import torch.nn.functional as F
-import math
 
 PI = math.pi
 

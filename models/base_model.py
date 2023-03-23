@@ -1,8 +1,9 @@
 import os
-import torch
-import sys
-from . import networks
 from collections import OrderedDict
+
+import torch
+
+from . import networks
 
 
 class BaseModel(torch.nn.Module):
