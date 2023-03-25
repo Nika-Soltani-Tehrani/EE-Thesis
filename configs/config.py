@@ -7,7 +7,7 @@ cfg = __C
 
 __C.name = 'JSCC_OFDM'  # Name of the experiment
 __C.gpu_ids = []  # GPUs to use
-__C.dataset_mode = 'CIFAR10'  # ['CIFAR10', 'CIFAR100', 'CelebA', 'OpenImage']
+__C.dataset_mode = 'OpenImage'  # ['CIFAR10', 'CIFAR100', 'CelebA', 'OpenImage']
 __C.checkpoints_dir = './Checkpoints/' + __C.dataset_mode  # Path to store the model
 __C.model = 'JSCCOFDM'
 __C.channel_type = 'OFDMChannel'
@@ -33,6 +33,7 @@ __C.output_nc = 3
 __C.ndf = 64
 __C.lam_G = 0.02  # Weight for the adversarial loss
 __C.lam_L2 = 100  # Weight for image reconstruction loss
+__C.num_threads = 0
 
 # Model and training configs ####################################
 

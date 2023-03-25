@@ -1,11 +1,10 @@
 """This package includes all the modules related to data loading and preprocessing
 
- To add a custom dataset class called 'dummy', you need to add a file called 'dummy_dataset.py' and define a subclass 'DummyDataset' inherited from BaseDataset.
- You need to implement four functions:
-    -- <__init__>:                      initialize the class, first call BaseDataset.__init__(self, opt).
-    -- <__len__>:                       return the size of dataset.
-    -- <__getitem__>:                   get a data point from data loader.
-    -- <modify_commandline_options>:    (optionally) add dataset-specific options and set default options.
+ To add a custom dataset class called 'dummy', you need to add a file called 'dummy_dataset.py' and define a subclass
+ 'DummyDataset' inherited from BaseDataset. You need to implement four functions: -- <__init__>:
+ initialize the class, first call BaseDataset.__init__(self, opt). -- <__len__>:                       return the
+ size of dataset. -- <__getitem__>:                   get a data point from data loader. --
+ <modify_commandline_options>:    (optionally) add dataset-specific options and set default options.
 
 Now you can use the dataset class by specifying flag '--dataset_mode dummy'.
 See our template dataset class 'template_dataset.py' for more details.
@@ -13,6 +12,7 @@ See our template dataset class 'template_dataset.py' for more details.
 import importlib
 import torch.utils.data
 from data.base_dataset import BaseDataset
+import fiftyone.zoo as foz
 
 
 def find_dataset_using_name(dataset_name):
@@ -23,17 +23,18 @@ def find_dataset_using_name(dataset_name):
     and it is case-insensitive.
     """
     dataset_filename = "data." + dataset_name + "_dataset"
-    datasetlib = importlib.import_module(dataset_filename)
+    dataset_lib = importlib.import_module(dataset_filename)
 
     dataset = None
     target_dataset_name = dataset_name.replace('_', '') + 'dataset'
-    for name, cls in datasetlib.__dict__.items():
+    for name, cls in dataset_lib.__dict__.items():
         if name.lower() == target_dataset_name.lower() \
            and issubclass(cls, BaseDataset):
             dataset = cls
 
     if dataset is None:
-        raise NotImplementedError("In %s.py, there should be a subclass of BaseDataset with class name that matches %s in lowercase." % (dataset_filename, target_dataset_name))
+        raise NotImplementedError("In %s.py, there should be a subclass of BaseDataset with class name that matches "
+                                  "%s in lowercase." % (dataset_filename, target_dataset_name))
 
     return dataset
 
@@ -55,18 +56,21 @@ def create_dataset(opt):
         >>> dataset = create_dataset(opt)
     """
     data_loader = CustomDatasetDataLoader(opt)
-    dataset = data_loader.load_data()
+    if opt.dataset_mode == "OpenImage":
+        dataset = foz.load_zoo_dataset("open-image-v6", splite="validation")
+    else:
+        dataset = data_loader.load_data()
     return dataset
 
 
 class CustomDatasetDataLoader():
-    """Wrapper class of Dataset class that performs multi-threaded data loading"""
+    """Wrapper class of Dataset class that performs multithreading data loading"""
 
     def __init__(self, opt):
         """Initialize this class
 
         Step 1: create a dataset instance given the name [dataset_mode]
-        Step 2: create a multi-threaded data loader.
+        Step 2: create a multithreading data loader.
         """
         self.opt = opt
         dataset_class = find_dataset_using_name(opt.dataset_mode)
@@ -76,7 +80,8 @@ class CustomDatasetDataLoader():
             self.dataset,
             batch_size=opt.batch_size,
             shuffle=not opt.serial_batches,
-            num_workers=int(opt.num_threads))
+            num_workers=int(opt.num_threads)
+        )
 
     def load_data(self):
         return self
