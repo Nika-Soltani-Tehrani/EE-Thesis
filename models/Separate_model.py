@@ -94,11 +94,10 @@ rate = k/n  # code rate
 # Define the QAM modulation parameters
 n_bits = 8  # number of bits per symbol
 n_symbols = 256  # number of symbols
-constellation = np.linspace(-1, 1, n_symbols) # define the constellation
+constellation = np.linspace(-1, 1, n_symbols)  # define the constellation
 # Loop over all CIFAR-10 images in the directory
 for root, dirs, files in os.walk(data_dir):
     for file in files:
-        print('here')
         # Load the image and convert it to a numpy array
         image_path = os.path.join(root, file)
         image = imageio.imread(image_path)
@@ -115,7 +114,7 @@ for root, dirs, files in os.walk(data_dir):
 
         # Apply LDPC coding to the encoded message
         encoded_message = np.fromfile(encoded_path, dtype=np.uint8)
-        encoded_message = encoded_message[:k]
+        # encoded_message = encoded_message[:k]
 
         ldpc_path = os.path.join(ldpc_dir, file + '.ldpc')
         np.random.seed(0)  # for reproducibility

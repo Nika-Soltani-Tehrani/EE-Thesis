@@ -1,0 +1,7 @@
+easydict
+ipython
+python==3.9
+python-msssim
+scipy==1.10
+torch==1.12
+torchvision
