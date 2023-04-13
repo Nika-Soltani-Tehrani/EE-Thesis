@@ -1,11 +1,14 @@
 import os
-import numpy as np
+
 import imageio
 import matplotlib.pyplot as plt
-from . import channel
-from configs.config_train import cfg
+import numpy as np
 import torch
+from pytorch_msssim import ssim, ms_ssim
 
+import util
+from configs.config_train import cfg
+from . import channel
 
 # class SeparateModel:
 #
@@ -102,6 +105,15 @@ rate = k/n  # code rate
 n_bits = 8  # number of bits per symbol
 n_symbols = 256  # number of symbols
 constellation = np.linspace(-1, 1, n_symbols)  # define the constellation
+
+PSNR_list = []
+SSIM_list = []
+MSSSIM_list = []
+H_err_MMSE_list = []
+H_err_list = []
+PAPR_list = []
+
+
 # Loop over all CIFAR-10 images in the directory
 for root, dirs, files in os.walk(data_dir):
     for file in files:
@@ -149,3 +161,43 @@ for root, dirs, files in os.walk(data_dir):
         channel = channel.WOOFDMChannel(cfg, device=None, pwr=1)
         out_pilot, out_sig, H_true, noise_pwr, PAPR = channel(qam_symbols, SNR=SNR, cof=None)
 
+# Get the int8 generated images
+    img_gen_numpy = out_sig.detach().cpu().float().numpy()
+    img_gen_numpy = (np.transpose(img_gen_numpy, (0, 2, 3, 1)) + 1) / 2.0 * 255.0
+    img_gen_int8 = img_gen_numpy.astype(np.uint8)
+
+    origin_numpy = image.detach().cpu().float().numpy()
+    origin_numpy = (np.transpose(origin_numpy, (0, 2, 3, 1)) + 1) / 2.0 * 255.0
+    origin_int8 = origin_numpy.astype(np.uint8)
+
+    diff = np.mean((np.float64(img_gen_int8) - np.float64(origin_int8)) ** 2, (1, 2, 3))
+
+    PSNR = 10 * np.log10((255 ** 2) / diff)
+    PSNR_list.append(np.mean(PSNR))
+
+    img_gen_tensor = torch.from_numpy(np.transpose(img_gen_int8, (0, 3, 1, 2))).float()
+    origin_tensor = torch.from_numpy(np.transpose(origin_int8, (0, 3, 1, 2))).float()
+
+    ssim_val = ssim(img_gen_tensor, origin_tensor.repeat(cfg.how_many_channel, 1, 1, 1), data_range=255,
+                    size_average=False)  # return (N,)
+    SSIM_list.append(torch.mean(ssim_val).item())
+
+    ms_ssim_val = ms_ssim(img_gen_tensor, origin_tensor.repeat(cfg.how_many_channel, 1, 1, 1), data_range=255, size_average=False)  # (N,)
+    MSSSIM_list.append(torch.mean(ms_ssim_val).item())
+
+    # Save the first sampled image
+    save_path = f'{cfg.image_out_path}/{i}_PSNR_{PSNR[0]:.3f}_SSIM_{ssim_val[0]:.3f}_MS-SSIM_{ms_ssim_val[0]:.3f}.png'
+    util.save_image(util.tensor2im(out_sig[0].unsqueeze(0)), save_path, aspect_ratio=1)
+
+    save_path = f'{cfg.image_out_path}/{i}.png'
+    util.save_image(util.tensor2im(input), save_path, aspect_ratio=1)
+
+    if i % 10 == 0:
+        print(i)
+
+print(f'PSNR: {np.mean(PSNR_list)}')
+print(f'SSIM: {np.mean(SSIM_list)}')
+print(f'MS-SSIM: {np.mean(MSSSIM_list)}')
+print(f'CE refined: {np.mean(H_err_list)}')
+print(f'CE MMSE: {np.mean(H_err_MMSE_list)}')
+print(f'PAPR: {np.mean(PAPR_list)}')
