@@ -10,7 +10,7 @@ This is the code for paper for [OFDM-guided Deep Joint Source Channel Coding for
 
 `CelebA` can be downloaded [here]() and should be placed at `dataset/celeba/CelebA_train` and `dataset/celeba/CelebA_test`. 
 
-`OpenImage` can be donwloaded [here](https://storage.googleapis.com/openimages/web/index.html).
+To download `OpenImage` dataset, the file `data/__init__.py` has to be modified. Lines 59-61 and line 15 has to get uncomment. 
 
 ## Usage
 
@@ -23,10 +23,15 @@ Please edit the files under `configs` to test different schemes.
     __C.model                                        = 'JSCCOFDM'
     __C.C_channel                                    = 12         # Number of channels for output latents (controls the communication rate)
                                                                   # Calculation of the rate (channel usage per pixel): 
-                                                                  #           C_channel / (3 x 2^(2 x n_downsample + 1))                                                         
+                                                                  # C_channel / (3 x 2^(2 x n_downsample + 1))                                                         
+    __C.channel_type = 'OFDMChannel'
+                                                                  # Different schemes:
+                                                                  # WOOFDMChannel: Channel without having OFDM module
+                                                                  # OFDMChannel: End-to-end channel with OFDM module
     __C.SNR                                          = 5          # Signal to noise ratio
     __C.SNR_cal                                      = 'ins'      # ['ins', 'avg']. 'ins' is for instantaneous SNR, 'avg' is for average SNR
     __C.feedforward                                  = 'OFDM-CE-sub-EQ-sub'  # Different schemes: 
+                                                                         # Auto-Encoder: auto-encoder without OFDM and CE EQ modules (base model)
                                                                          # OFDM-CE-EQ: MMSE channel estimation and equalization without any subnets
                                                                          # OFDM-CE-sub-EQ: MMSE channel estimation and equalization with CE subnet
                                                                          # OFDM-CE-sub-EQ-sub: MMSE channel estimation and equalization with CE & EQ subnet
