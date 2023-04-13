@@ -54,6 +54,7 @@ model.eval()
 
 PSNR_list = []
 SSIM_list = []
+MSSSIM_list = []
 H_err_MMSE_list = []
 H_err_list = []
 PAPR_list = []
@@ -105,8 +106,11 @@ for i, data in enumerate(dataset):
                     size_average=False)  # return (N,)
     SSIM_list.append(torch.mean(ssim_val).item())
 
+    ms_ssim_val = ms_ssim(img_gen_tensor, origin_tensor.repeat(cfg.how_many_channel, 1, 1, 1), data_range=255, size_average=False)  # (N,)
+    MSSSIM_list.append(torch.mean(ms_ssim_val).item())
+
     # Save the first sampled image
-    save_path = f'{cfg.image_out_path}/{i}_PSNR_{PSNR[0]:.3f}_SSIM_{ssim_val[0]:.3f}.png'
+    save_path = f'{cfg.image_out_path}/{i}_PSNR_{PSNR[0]:.3f}_SSIM_{ssim_val[0]:.3f}_MS-SSIM_{ms_ssim_val[0]:.3f}.png'
     util.save_image(util.tensor2im(fake[0].unsqueeze(0)), save_path, aspect_ratio=1)
 
     save_path = f'{cfg.image_out_path}/{i}.png'
@@ -117,6 +121,7 @@ for i, data in enumerate(dataset):
 
 print(f'PSNR: {np.mean(PSNR_list)}')
 print(f'SSIM: {np.mean(SSIM_list)}')
+print(f'MS-SSIM: {np.mean(MSSSIM_list)}')
 print(f'CE refined: {np.mean(H_err_list)}')
 print(f'CE MMSE: {np.mean(H_err_MMSE_list)}')
 print(f'PAPR: {np.mean(PAPR_list)}')

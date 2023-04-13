@@ -12,7 +12,7 @@ See our template dataset class 'template_dataset.py' for more details.
 import importlib
 import torch.utils.data
 from data.base_dataset import BaseDataset
-import fiftyone.zoo as foz
+# import fiftyone.zoo as foz
 
 
 def find_dataset_using_name(dataset_name):
@@ -56,10 +56,10 @@ def create_dataset(opt):
         >>> dataset = create_dataset(opt)
     """
     data_loader = CustomDatasetDataLoader(opt)
-    if opt.dataset_mode == "OpenImage":
-        dataset = foz.load_zoo_dataset("open-image-v6", splite="validation")
-    else:
-        dataset = data_loader.load_data()
+    # if opt.dataset_mode == "OpenImage":
+    #     dataset = foz.load_zoo_dataset("open-image-v6", splite="validation")
+    # else:
+    dataset = data_loader.load_data()
     return dataset
 
 
@@ -88,11 +88,11 @@ class CustomDatasetDataLoader():
 
     def __len__(self):
         """Return the number of data in the dataset"""
-        return min(len(self.dataset), self.opt.max_dataset_size)
+        return min(len(self.dataset), 100000) #self.opt.max_dataset_size)
 
     def __iter__(self):
         """Return a batch of data"""
         for i, data in enumerate(self.dataloader):
-            if i * self.opt.batch_size >= self.opt.max_dataset_size:
+            if i * self.opt.batch_size >= 100000: #self.opt.max_dataset_size:
                 break
             yield data
