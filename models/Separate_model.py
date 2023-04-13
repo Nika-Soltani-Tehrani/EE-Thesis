@@ -2,9 +2,11 @@ import os
 import numpy as np
 import imageio
 import matplotlib.pyplot as plt
+from . import channel
+from configs.config_train import cfg
 import torch
-#
-#
+
+
 # class SeparateModel:
 #
 #     def __init__(self):
@@ -16,6 +18,7 @@ import torch
 #         # Define the BPG encoding and decoding commands
 #         self.bpg_enc_cmd = 'bpgenc -o {output_path} {input_path}'
 #         self.bpg_dec_cmd = 'bpgdec {input_path} -o {output_path}'
+#         self.SNR = 5
 #         # Define the LDPC code parameters
 #         self.n = 2400  # codeword length
 #         self.k = 1200  # message length
@@ -38,7 +41,7 @@ import torch
 #     def set_img_path(self, path):
 #         self.image_paths = path
 #
-#     def execute(self):
+#     def execute(self, opt):
 #         image = self.real_A
 #
 #         # Save the image to a temporary file
@@ -75,6 +78,9 @@ import torch
 #         plt.ylim((-1.5, 1.5))
 #         plt.title('QAM Constellation')
 #         plt.show()
+#         from . import channel
+#         channel = channel.WOOFDMChannel(opt, self.device, pwr=1)
+#         out_pilot, out_sig, H_true, noise_pwr, PAPR = channel(qam_symbols, SNR=self.SNR, cof=None)
 
 
 
@@ -90,6 +96,7 @@ bpg_dec_cmd = 'bpgdec {input_path} -o {output_path}'
 # Define the LDPC code parameters
 n = 2400  # codeword length
 k = 1200  # message length
+SNR = 5
 rate = k/n  # code rate
 # Define the QAM modulation parameters
 n_bits = 8  # number of bits per symbol
@@ -138,4 +145,7 @@ for root, dirs, files in os.walk(data_dir):
         plt.ylim((-1.5, 1.5))
         plt.title('QAM Constellation')
         plt.show()
+
+        channel = channel.WOOFDMChannel(cfg, device=None, pwr=1)
+        out_pilot, out_sig, H_true, noise_pwr, PAPR = channel(qam_symbols, SNR=SNR, cof=None)
 
