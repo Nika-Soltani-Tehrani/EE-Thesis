@@ -7,7 +7,7 @@ cfg = __C
 
 __C.name = 'JSCC_OFDM'  # Name of the experiment
 __C.gpu_ids = []  # GPUs to use
-__C.dataset_mode = 'OpenImage'  # ['CIFAR10', 'CIFAR100', 'CelebA', 'OpenImage']
+__C.dataset_mode = 'CIFAR10'  # ['CIFAR10', 'CIFAR100', 'CelebA', 'OpenImage']
 __C.checkpoints_dir = './Checkpoints/' + __C.dataset_mode  # Path to store the model
 __C.model = 'JSCCOFDM'
 __C.channel_type = 'OFDMChannel'

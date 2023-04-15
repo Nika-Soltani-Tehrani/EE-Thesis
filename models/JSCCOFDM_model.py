@@ -80,7 +80,6 @@ class JSCCOFDMModel(BaseModel):
                           init_gain=0.02,
                           gpu_ids=self.gpu_ids)
             )
-            print(self.netP)
 
         # define networks (both generator and discriminator)
         self.netE = networks.define_E(input_nc=3,
@@ -310,8 +309,12 @@ class JSCCOFDMModel(BaseModel):
                 .contiguous()
                 .view(-1, 6, 8, 8)
             )
-            sub2_output = self.netEQ(sub2_input).view(-1, 1, 1, 2, self.opt.M).permute(0, 1, 2, 4, 3).view(
-                self.rx.shape)
+            sub2_output = (
+                    self.netEQ(sub2_input)
+                    .view(-1, 1, 1, 2, self.opt.M)
+                    .permute(0, 1, 2, 4, 3)
+                    .view(self.rx.shape)
+            )
             dec_in = (self.rx + sub2_output).permute(0, 1, 2, 4, 3).contiguous().view(latent.shape)
             self.fake = self.netG(dec_in)
 
